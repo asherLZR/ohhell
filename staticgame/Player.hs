@@ -14,7 +14,7 @@ How to deal with no cards returned in base case?
 import OhTypes
 import OhHell
 
--- Given a Trick, returns the suit of the last card played
+-- Given a Trick, returns the suit of the last card played.
 lastSuitInTrick :: Trick -> Suit
 lastSuitInTrick [] = Spade
 lastSuitInTrick (((Card suit _), _):[]) = suit
@@ -35,26 +35,26 @@ playCard _ (card:_) _ _ _ curTrick = card
 --   -> Trick        -- ^ cards in the current trick so far
 --   -> Card 
 
--- | Bid the number of cards you can win based on the trump card and your hand.
---   last player to bid must obey "hook rule":
---   sum of bids must not equal number of tricks available
-makeBid :: BidFunc
-makeBid _ _ _ _ = 0 
-
--- |Given the number of players and number of bids made so far, determine if the player is the last to bid
+-- |Determine if the player is the last to bid.
 lastPlayer :: Int -> [Int] -> Bool
-lastPlayer numPlayers bids = (==) ((-) numPlayers (length bids)) 1
+lastPlayer p b = (==) ((-) p (length b)) 1
 
--- |Given the cards in a hand and a list of bids, find the possible bids taking into account the hook rule
-hookRule :: [Int] -> [Int] -> [Int]
-hookRule cards bids = [x*2 | x <- [1..10]] 
-    
-    -- (length cards) (sum bids)
+-- |Find the illegal bid for the last player.
+illegalBid :: [Card] -> [Int] -> Int
+illegalBid c b = (-) (length c) (sum b)
 
+-- |Find the possible bids taking into account the hook rule.
+possibleBids :: [Card] -> [Int] -> Bool -> [Int]
+possibleBids c b l
+    | l == True = [x | x <- [0..(length c)], x /= badBid]
+    | otherwise = [x | x <- [0..(length c)]]
+    where
+        badBid = illegalBid c b
 
--- |Bid function type
--- must respect hook rule:
--- last bidder cannot bid an amount that sums to the number of tricks available
+-- | Bid the number of cards you can win based on the trump card and your hand.
+makeBid :: BidFunc
+makeBid _ c p b = let (x:_) = possibleBids c b (lastPlayer p b) in x
+
 -- type BidFunc
 --   = Card    -- ^ trump card
 --   -> [Card] -- ^ list of cards in the player's hand
