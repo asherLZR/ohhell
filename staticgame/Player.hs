@@ -9,22 +9,47 @@ Write a report describing your design and strategy here.
 Perform a filter operation on the cards in hand to see if a suit can be followed.
 
 How to deal with no cards returned in base case?
+
+ a = [(Card Spade Two), (Card Diamond Two), (Card Heart Ace), (Card Club Two), (Card Heart Two)]
+ bids = [("1", 10), ("2", 20), ("3", 30)]
 -}
 
 import OhTypes
 import OhHell
 
--- Given a Trick, returns the suit of the last card played.
-lastSuitInTrick :: Trick -> Suit
-lastSuitInTrick [] = Spade
-lastSuitInTrick (((Card suit _), _):[]) = suit
-lastSuitInTrick (_:xs) = lastSuitInTrick xs
+-- From OhHell.hs
+leadSuit :: Trick -> Suit
+leadSuit c = let (Card suit _, _) = last c in suit
+
+-- Filter the cards in hand based on the given Suit.
+cardsOfSuit :: [Card] -> Suit -> [Card]
+cardsOfSuit cds st = let isSuit (Card s _) = if s == st then True else False
+    in filter isSuit cds
+
+-- Filter the list of bids to find the bid of a player.
+bidOfPlayer :: PlayerId -> [(PlayerId, Int)] -> Int
+bidOfPlayer pId bids = let (x:_) = filter isPlayer bids
+    in snd $ x
+    where isPlayer bd = if fst bd == pId then True else False
+
+-- Sort the cards by Rank.
+-- rankSort :: [Card] -> [Card]
+-- rankSort = 
+
+-- trumpSuit
+-- leadSuit
+-- lowestCard
+
+-- cardsOfSuit cds trumpSuit
+-- cardsOfSuit cds leadSuit
+-- lowestCard/highestCard cds (low if trying to win, high if trying to lose)
 
 -- | Play a card for the current trick.
 -- If you are the "lead" player, you must follow the suit of the card that was led.
 playCard :: PlayFunc
-playCard _ [] _ _ _ _ = Card Spade Two      -- but there can never be no cards in hand?
-playCard _ (card:_) _ _ _ curTrick = card
+playCard _ _ _ _ _ t = Card (leadSuit t) Two
+playCard pId cds bids tmp txs tx = 
+    where lSt = leadSuit t
 
 -- type PlayFunc
 --   =  PlayerId     -- ^ this player's Id so they can identify themselves in the bids and tricks
