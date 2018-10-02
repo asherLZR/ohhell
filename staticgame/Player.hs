@@ -16,15 +16,19 @@ How to deal with no cards returned in base case?
 
 import OhTypes
 import OhHell
+import Data.List
 
 -- From OhHell.hs
 leadSuit :: Trick -> Suit
 leadSuit c = let (Card suit _, _) = last c in suit
 
--- Filter the cards in hand based on the given Suit.
-cardsOfSuit :: [Card] -> Suit -> [Card]
-cardsOfSuit cds st = let isSuit (Card s _) = if s == st then True else False
-    in filter isSuit cds
+-- Filter the cards in hand based on the given Suit and sort them by Rank.
+-- FIXME
+cardsOfSuit :: [Card] -> Suit -> Bool -> [Card]
+cardsOfSuit cds st inv = sort $ filter isSuit cds
+    where isSuit (Card s _)
+            | inv == False = if s == st then True else False
+            | otherwise = if s == st then False else True
 
 -- Filter the list of bids to find the bid of a player.
 bidOfPlayer :: PlayerId -> [(PlayerId, Int)] -> Int
@@ -32,24 +36,25 @@ bidOfPlayer pId bids = let (x:_) = filter isPlayer bids
     in snd $ x
     where isPlayer bd = if fst bd == pId then True else False
 
--- Sort the cards by Rank.
--- rankSort :: [Card] -> [Card]
--- rankSort = 
-
--- trumpSuit
--- leadSuit
--- lowestCard
-
--- cardsOfSuit cds trumpSuit
--- cardsOfSuit cds leadSuit
--- lowestCard/highestCard cds (low if trying to win, high if trying to lose)
+-- Order the cards by trump Suit, lead Suit, ordered by Rank
+orderCards :: [Card] -> Suit -> Suit -> [Card]
+orderCards cds tmpSuit ldSuit 
+    | tmpSuit == ldSuit = tmpCards ++ rest
+    | otherwise = tmpCards ++ ldCards ++ rest
+    where tmpCards = sort $ cardsOfSuit cds tmpSuit False
+          ldCards = sort $ cardsOfSuit cds ldSuit False
+          rest = sort $ cardsOfSuit (cardsOfSuit cds tmpSuit True) ldSuit True
 
 -- | Play a card for the current trick.
 -- If you are the "lead" player, you must follow the suit of the card that was led.
 playCard :: PlayFunc
-playCard _ _ _ _ _ t = Card (leadSuit t) Two
-playCard pId cds bids tmp txs tx = 
-    where lSt = leadSuit t
+playCard pId cds bids tmp txs tx
+    -- if we need to win more tricks, play the highest card
+    | wonBds < bidOfPlayer pId bids = Card (leadSuit tx) Ace
+    -- if we need to lose, play the lowest card
+    | wonBds >= bidOfPlayer pId bids = Card (leadSuit tx) Three
+        where (Card tmpSuit _) = tmp
+              wonBds = foldr (const(+1)) 0 $ filter (\x -> if x == pId then True else False) $ map (winner tmpSuit) txs
 
 -- type PlayFunc
 --   =  PlayerId     -- ^ this player's Id so they can identify themselves in the bids and tricks
