@@ -84,7 +84,7 @@ countTrumps cds tmp = length tmpCards
 
 -- | Find the closest number to the number of trump suits in the list of possible bids.
 closestPossible :: [Int] -> Int -> Int
-closestPossible possible count = foldl (\i a -> if (abs $ (-) count i) > (abs $ (-) count a) then i else a) 0 possible
+closestPossible possible count = foldr (\i a -> if (abs $ (-) count i) <= (abs $ (-) count a) then i else a) 0 possible
 
 -- | Bid the number of cards you can win based on the trump card and your hand.
 makeBid :: BidFunc
