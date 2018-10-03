@@ -67,6 +67,7 @@ sumScoresByPlayer =
   let metrics (HandScore _ b w s) =
         let diff x y = if x>y then x-y else 0
         in (Sum s, Sum (diff w b), Sum (diff b w))
+      playerGameScore [] = error "Hand results cannot be empty"
       playerGameScore l@(HandScore i _ _ _:_) =
         let (Sum s,Sum u,Sum o) = (mconcat . map metrics) l
         in GameScore i s u o
@@ -221,14 +222,14 @@ chooseCard hand bids trumpCard tricksSoFar trick = do
   played <- EitherIO card
   liftEither (process played hand trick)
   where
-    (Hand p@Player{playerId,playFunc} handCards bid) = hand
+    (Hand Player{playerId,playFunc} handCards _) = hand
     picked = playFunc playerId handCards bids trumpCard tricksSoFar trick
     card = do
       played <- timeout 1000 $ return picked
-      let card = case played of
+      let timed = case played of
             Nothing -> Left $ TimeError playerId "took too long to play."
-            Just c -> Right $ c
-      return card
+            Just c -> Right c
+      return timed
 
 
 -- | Tell if a player renegs (does not follow suit)
@@ -239,21 +240,26 @@ reneging
   -> [Card]                     -- ^ Current trick
   -> Bool
 reneging _ _ _ [] = False
-reneging card@(Card suit _) hand ledSuit _ =
+reneging (Card suit _) hand ledSuit _ =
   suit /= ledSuit && any followSuit hand
   where
     followSuit (Card s _) = s == ledSuit
 
 process :: Card -> Hand -> Trick -> Either PlayerError (Play, Hand)
-process card@(Card suit _) (Hand p@Player{playerId,playFunc} handCards bid) trick
-  | reneging card handCards ledSuit trickCards = Left $ renegError
-  | otherwise = Right $ ((card, playerId), newHand)
+process card@(Card _ _) (Hand p@Player{playerId} handCards bid) trick
+  | reneging card handCards ledSuit trickCards = Left renegError
+  | card `notElem` handCards = Left invalidCardError
+  | otherwise = Right ((card, playerId), newHand)
   where
     trickCards = map fst trick
     (Card ledSuit _) = last trickCards
     newHand = Hand p (delete card handCards) bid
     renegError =
       RenegError playerId $ "didn't follow led suit: " ++ show ledSuit
+    invalidCardError =
+      InvalidCardError playerId $
+        "Card played wasn't in player's hand: " ++ show card ++
+        "Hand: " ++ show handCards
 
 -- | Choose and move card from hand to trick
 playCardToTrick
@@ -287,8 +293,8 @@ playTrick ::
   -> [Trick]                    -- ^ tricks played so far
   -> EitherIO PlayerError (Trick,[Hand])
 playTrick trumpCard@(Card trumpSuit _) hands tricksSoFar = do
-  (trick, hands) <- foldr playCards (return ([],[])) hands
-  return (trick, rotateHands (winner trumpSuit trick) hands)
+  (trick, playerHands) <- foldr playCards (return ([],[])) hands
+  return (trick, rotateHands (winner trumpSuit trick) playerHands)
   where
     bids = map (\(Hand Player{playerId} _ bid)->(playerId,bid)) hands
     playCards = playCardToTrick  bids trumpCard tricksSoFar

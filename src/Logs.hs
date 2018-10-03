@@ -1,7 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE Trustworthy #-}
 module Logs(
   writeHand,
   clearLog
@@ -37,10 +34,13 @@ logFile playerId = do
   where
     playerName = takeBaseName playerId
 
+foldStr :: (a -> String) -> String -> [a] -> String
+foldStr _ _ [] = ""
+foldStr f sep (x: xs) = foldl (\ys y -> ys ++ sep ++ f y) (f x) xs
+
 fromCards :: [Card] -> String
-fromCards (cs: cards) = foldl (\str c -> str ++ "," ++ toId c) (toId cs) cards
+fromCards cards = foldStr toId "," cards
   where
-    toId :: Card -> String
     toId (Card suit rank) = toChar suit ++ r
       where
         r | rank < Jack = show (fromEnum rank + 2)
@@ -54,12 +54,9 @@ toChar suit = case suit of
   Heart -> "H"
 
 toCards :: [Trick] -> String
-toCards (tr: tricks) = foldl
-  (\ts t -> ts ++ ";" ++ getCards t)
-  (getCards tr)
-  tricks
+toCards tricks = foldStr getCards ";" tricks
   where
-    getCards = fromCards . (map fst)
+    getCards = fromCards . map fst
 
 fromScores :: PlayerId -> [HandScore] -> Int
 fromScores pid scores = (score . head) $
@@ -84,8 +81,7 @@ writeHand players (HandResult (Card suit _) tricks scores) = do
   where
     -- Extract player ids and sort them
     pids =  (sort . map (\Player{playerId} -> playerId)) players
-    points = sorted (\HandScore{playerId=p} HandScore{playerId=q} -> compare p q) scores
-    ordered = (reverse . (map match)) tricks
+    points = sortBy (\HandScore{playerId=p} HandScore{playerId=q} -> compare p q) scores
+    ordered = (reverse . map match) tricks
     match = sortBy (\x y -> compare (snd x) (snd y))
-    sorted field = sortBy field
     first = elemIndex (((\Player{playerId} -> playerId) . head) players) pids

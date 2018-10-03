@@ -11,7 +11,7 @@ import OhTypes
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Vector as V
 
-data Entry = Entry {name :: FilePath, games :: Int, elo :: Float}
+data Entry = Entry {_name :: FilePath, _games :: Int, _elo :: Float}
 
 entryHeader :: Header
 entryHeader = header ["name", "games", "elo"]

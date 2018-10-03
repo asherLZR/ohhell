@@ -31,17 +31,26 @@ dependencies:
 
 library:
   source-dirs: src
+  default-extensions:
+  - Trustworthy
+  - NamedFieldPuns
+  - DuplicateRecordFields
 
 executables:
   staticgame:
     main: Main.hs
     source-dirs: staticgame
     ghc-options:
-    - -XTrustworthy
     - -Wall
+    - -Wno-trustworthy-safe
+    - -Wno-orphans
     - -Wno-unused-imports
     dependencies:
     - ohhell
+    default-extensions:
+    - Trustworthy
+    - NamedFieldPuns
+    - DuplicateRecordFields
 
 tests:
   ohhell-test:
@@ -53,11 +62,15 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -XSafe
     - -Wall
     - -Werror
+    - -Wtrustworthy-safe
     - -Wno-unused-imports
     - -Wno-orphans
     dependencies:
     - ohhell
     - QuickCheck
+    default-extensions:
+    - Safe
+    - NamedFieldPuns
+    - DuplicateRecordFields

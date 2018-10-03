@@ -62,6 +62,7 @@ type Play = (Card, PlayerId)
 type Trick = [Play]
 
 data PlayerError = RenegError PlayerId String
+                 | InvalidCardError PlayerId String
                  | BidError PlayerId String
                  | TimeError PlayerId String
   deriving Show

@@ -16,14 +16,19 @@ playerCount = 4
 players :: [String]
 players = ["a", "b", "c", "d"]
 
--- | Check if player renegs: does not follow led suit if possible
+-- | Check if player's card is legal
 correct :: Card -> [Card] -> [Card] -> P.Result
 correct card trick hand
+  | card `notElem` hand = P.failed {
+      P.reason = unlines [
+          "Card played wasn't in player's hand: " ++ show card,
+          "Hand: " ++ show hand,
+          "Trick: " ++ show (reverse trick)]}
   | reneging card hand ledSuit trick  = P.failed {
       P.reason = unlines [
-          "Did not follow suit: [" ++ (show ledSuit) ++ "] " ++ (show card),
-          "Hand: " ++ (show hand),
-          "Trick: " ++ (show (reverse trick))]}
+          "Did not follow suit: [" ++ show ledSuit ++ "] " ++ show card,
+          "Hand: " ++ show hand,
+          "Trick: " ++ show (reverse trick)]}
   | otherwise = P.succeeded
   where
       (Card ledSuit _) = last trick
@@ -32,8 +37,8 @@ correct card trick hand
 -- makeBids
 makeBids :: Int -> Gen [Int]
 makeBids size = do
-  p <- choose (0, playerCount - 1)
-  replicateM p (choose (1, size))
+  -- p <- choose (0, playerCount - 1)
+  replicateM (playerCount - 1) (choose (1, size))
 
 -- Test Bid function, it should:
 --  1. Bid between 0 and the number of cards.
@@ -51,7 +56,7 @@ test_bidding trump = do
           P.reason = unlines [
               "Bid not valid: " ++ (show nb),
               "Hand: " ++ (show hand)] }
-      | not (hookRule bids 4 (length hand)) = P.failed {
+      | not (hookRule bids playerCount (length hand)) = P.failed {
           P.reason = unlines [
               "Did not respect hook rule",
               "Hand: " ++ (show hand),
@@ -63,11 +68,11 @@ test_one_play trump = do
   size <- choose (3, 12)
   h <- choose (1, size)
   hand <- vector h
-  bids <- replicateM 3 (choose (1, size))
+  bids <- makeBids size
   nb <- return $ makeBid trump hand playerCount bids
-  previous <- replicateM (size - h) (replicateM 4 arbitrary)
+  previous <- replicateM (size - h) (vector playerCount)
   p <- choose (0, playerCount - 1)
-  trick <- replicateM p arbitrary
+  trick <- vector p
   play <- return $ (
     playCard "a"
     hand
@@ -80,7 +85,8 @@ test_one_play trump = do
 main :: IO ()
 main = do
   -- add test runners into the array for each module
-  done <- mapM quickCheckResult [test_bidding, test_one_play]
+  done <- mapM (quickCheckWithResult stdArgs{maxSuccess=1000})
+    [test_bidding, test_one_play]
   if all isSuccess done
      then exitSuccess
      else exitFailure

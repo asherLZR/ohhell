@@ -8,8 +8,10 @@ import EitherIO
 import Logs
 import safe qualified Player
 import Control.Monad
-import Control.Exception
 
+-- This sets up a tournament with four instances of your player playing against each other.
+-- You can run different players against each other, but you'll need to change the Module names of those players
+-- (don't forget to change the module name back to "Player" when you submit your code)
 players :: [Player]
 players =
     [ newPlayer "4" Player.playCard Player.makeBid
