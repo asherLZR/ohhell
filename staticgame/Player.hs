@@ -4,15 +4,12 @@ module Player (
 )
 where
 {-
-Write a report describing your design and strategy here.
+The general strategy of the AI is predicated on the idea that it is easier to lose tricks than to win them.
+Therefore, it makes a low bid at the start of each trick according to how many trump cards there are in the
+hand. This is accomplished by folding through a list of possible bids (hook rule taken into account) and 
+finding the number closest to the number of trump cards in hand.
 
-Perform a filter operation on the cards in hand to see if a suit can be followed.
-
-How to deal with no cards returned in base case?
-
- a = [(Card Spade Two), (Card Diamond Two), (Card Heart Ace), (Card Club Two), (Card Heart Two)]
- bids = [("1", 10), ("2", 20), ("3", 30)]
- a = [Card Club Two,Card Heart Four,Card Heart Ace,Card Heart Three,Card Diamond Six,Card Spade Two,Card Heart Six]
+The hands themselves are played according to whether the AI needs more tricks to win.
 -}
 
 import OhTypes
@@ -42,14 +39,18 @@ bidOfPlayer pId bids = let (x:_) = filter isPlayer bids
 
 -- | Order the cards by trump Suit, lead Suit, ordered by Rank
 orderCards :: [Card] -> Suit -> Maybe Suit -> Bool -> [Card]
-orderCards cds tmpSuit mbLdSuit rev
-    | mbLdSuit == Nothing = tmpCards ++ tmpCards'
-    | (Just tmpSuit) == mbLdSuit = tmpCards ++ tmpLdCards'
-    | otherwise = ldCards ++ tmpCards ++ tmpLdCards'
-    where tmpCards = cardsOfSuit cds (Just tmpSuit) False rev
-          tmpCards' = cardsOfSuit cds (Just tmpSuit) True rev
-          ldCards = cardsOfSuit cds mbLdSuit False rev
-          tmpLdCards' = cardsOfSuit (cardsOfSuit cds (Just tmpSuit) True rev) mbLdSuit True rev
+orderCards cds tmpSuit mbLdSuit tryToLose
+    -- if there is no lead suit played yet, choose trump as priority if trying to win, non-trump otherwise
+    | mbLdSuit == Nothing && tryToLose == False = tmpCards ++ tmpCards'
+    | mbLdSuit == Nothing && tryToLose == True = tmpCards' ++ tmpCards
+    | (Just tmpSuit) == mbLdSuit = tmpCards ++ tmpLdCards'          -- if the lead suit is the same as trump suit
+    -- if the lead suit has to be played, choose trump as priority if trying to win, non-trump otherwise
+    | tryToLose == False = ldCards ++ tmpCards ++ tmpLdCards'
+    | otherwise = ldCards ++ tmpLdCards' ++ tmpCards          
+    where tmpCards = cardsOfSuit cds (Just tmpSuit) False tryToLose
+          tmpCards' = cardsOfSuit cds (Just tmpSuit) True tryToLose       -- cards not trump
+          ldCards = cardsOfSuit cds mbLdSuit False tryToLose
+          tmpLdCards' = cardsOfSuit (cardsOfSuit cds (Just tmpSuit) True tryToLose) mbLdSuit True tryToLose
 
 -- | Play a card for the current trick. If you are the "lead" player, you must follow the suit of the card that was led.
 playCard :: PlayFunc
@@ -107,3 +108,10 @@ makeBid (Card tmpSuit _) cds noPlyrs bids = closestPossible possible tmpCount
 --   -> Int    -- ^ number of players
 --   -> [Int]  -- ^ bids so far
 --   -> Int    -- ^ the number of tricks the player intends to win
+
+{-
+Test input
+ a = [(Card Spade Two), (Card Diamond Two), (Card Heart Ace), (Card Club Two), (Card Heart Two)]
+ bids = [("1", 10), ("2", 20), ("3", 30)]
+ a = [Card Club Two,Card Heart Four,Card Heart Ace,Card Heart Three,Card Diamond Six,Card Spade Two,Card Heart Six]
+-}
