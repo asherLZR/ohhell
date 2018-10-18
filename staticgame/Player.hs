@@ -9,7 +9,8 @@ Therefore, it makes a low bid at the start of each trick according to how many t
 hand. This is accomplished by folding through a list of possible bids (hook rule taken into account) and 
 finding the number closest to the number of trump cards in hand.
 
-The hands themselves are played according to whether the AI needs more tricks to win.
+The hands themselves are played according to whether the AI needs more tricks to win. The highest card is played
+when the player needs to win, the lowest otherwise.
 -}
 
 import OhTypes
@@ -57,9 +58,10 @@ playCard :: PlayFunc
 playCard pId cds bids (Card tmpSuit _) txs tx
     | wonBds < bidOfPlayer pId bids = head $ orderedCds False      -- if we need to win more tricks, play the highest card
     | wonBds >= bidOfPlayer pId bids = head $ orderedCds True      -- if we need to lose, play the lowest card
+    -- | otherwise = sabotage                                         -- if we have won too many bids, sabotage the opponent!
         where wonBds = foldr (const(+1)) 0 $ filter (\x -> if x == pId then True else False) $ map (winner tmpSuit) txs
               orderedCds = orderCards cds tmpSuit (leadSuit tx)
-playCard _ _ _ (Card _ _) _ _ = undefined
+playCard _ _ _ (Card _ _) _ _ = undefined                          -- to meet the safePragma
 
 -- | Determine if the player is the last to bid by subtracting player count from number of bids made in trick.
 lastPlayer :: Int -> [Int] -> Bool
@@ -69,14 +71,18 @@ lastPlayer p b = (==) ((-) p (length b)) 1
 illegalBid :: [Card] -> [Int] -> Int
 illegalBid cds bds = (-) (length cds) (sum bds)
 
+-- | Filter for bad bids
+badBidFilter :: [Card] -> [Int] -> Int -> Bool
+badBidFilter cds bds bd = if bd /= badBid then True else False
+    where badBid = illegalBid cds bds
+
 -- | Find the possible bids taking into account the hook rule.
 possibleBids :: [Card] -> [Int] -> Bool -> [Int]
 possibleBids cds bds lstPlyr
-    | lstPlyr == True = filter (\i -> if i /= badBid then True else False) bidList
+    | lstPlyr == True = filter (badBidFilter cds bds)  bidList
     | otherwise = bidList
     where
-        bidList = [x | x <- [0..(length cds)]]
-        badBid = illegalBid cds bds
+        bidList = [0..(length cds)]
 
 -- | Count the number of trumps in the hand.
 countTrumps :: [Card] -> Suit -> Int
@@ -114,4 +120,5 @@ Test input
  a = [(Card Spade Two), (Card Diamond Two), (Card Heart Ace), (Card Club Two), (Card Heart Two)]
  bids = [("1", 10), ("2", 20), ("3", 30)]
  a = [Card Club Two,Card Heart Four,Card Heart Ace,Card Heart Three,Card Diamond Six,Card Spade Two,Card Heart Six]
--}
+ trick = [(Card Heart Two, "1"), (Card Diamond Two, "2") ,(Card Heart Ace, "3")]
+ -}
