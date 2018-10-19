@@ -54,17 +54,6 @@ isErrorResult :: ParseResult a -> Bool
 isErrorResult (Error _) = True
 isErrorResult _ = False
 
-readFloats :: (RealFrac a) => String -> Maybe (a, String)
-readFloats s =
-  case N.readSigned N.readFloat s of
-    ((a, s):_) -> Just (a, s)
-    _ -> Nothing
-
-readHex :: (Num a, Eq a) => String -> Maybe (a, String)
-readHex s = case N.readHex s of
-  ((a, s): _) -> Just (a, s)
-  _ -> Nothing
-
 readInt :: String -> Maybe (Int, String)
 readInt s = case reads s of
               [(x,rest)] -> Just (x,rest)

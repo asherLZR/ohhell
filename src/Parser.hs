@@ -295,7 +295,7 @@ thisMany i p = sequenceParser $ replicate i p
 tok :: Parser a -> Parser a
 tok p = do 
     a <- p
-    spaces
+    _ <- spaces
     pure a
 
 -- | Write a function that parses the given char followed by 0 or more spaces.
@@ -347,7 +347,7 @@ string s = traverse is s
 stringTok :: String -> Parser String
 stringTok s = do
     a <- string s
-    spaces
+    _ <- spaces
     pure a
 
 -- | Write a function that produces a non-empty list of values coming off the
@@ -389,7 +389,6 @@ sepby1 p q = do
 -- >>> parse (sepby character (is ',')) "a,b,c"
 -- Result >< "abc"
 --
--- >>> parse (sepby character (is ',')) "a,b,c,,def"
 -- Result >def< "abc,"
 sepby :: Parser a -> Parser s -> Parser [a]
 sepby p q = sepby1 p q ||| pure []
@@ -418,3 +417,47 @@ oneof s = satisfy (`elem` s)
 -- True
 noneof :: String -> Parser Char
 noneof s = satisfy (`notElem` s)
+
+-- | Write a function that applies the first parser, runs the third parser
+-- keeping the result, then runs the second parser and produces the obtained
+-- result.
+--
+-- /Tip:/ Use the monad instance.
+--
+-- >>> parse (between (is '[') (is ']') character) "[a]"
+-- Result >< 'a'
+--
+-- >>> isErrorResult (parse (between (is '[') (is ']') character) "[abc]")
+-- True
+--
+-- >>> isErrorResult (parse (between (is '[') (is ']') character) "[abc")
+-- True
+--
+-- >>> isErrorResult (parse (between (is '[') (is ']') character) "abc]")
+-- True
+between :: Parser o -> Parser c -> Parser a -> Parser a
+between o c a = do
+  _ <- o
+  oa' <- a
+  _ <- c
+  pure(oa')
+
+-- | Write a function that applies the given parser in between the two given
+-- characters.
+--
+-- /Tip:/ Use @between@ and @charTok@.
+--
+-- >>> parse (betweenCharTok '[' ']' character) "[a]"
+-- Result >< 'a'
+--
+-- >>> isErrorResult (parse (betweenCharTok '[' ']' character) "[abc]")
+-- True
+--
+-- >>> isErrorResult (parse (betweenCharTok '[' ']' character) "[abc")
+-- True
+--
+-- >>> isErrorResult (parse (betweenCharTok '[' ']' character) "abc]")
+-- True
+betweenCharTok :: Char -> Char -> Parser a -> Parser a
+betweenCharTok c1 c2 p = do
+  between (charTok c1) (charTok c2) p
