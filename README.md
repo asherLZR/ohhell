@@ -1,3 +1,3 @@
-# ohhell, [instructions](https://docs.google.com/document/d/11rwDMXodqlxAjYlOyWvYiwVKjMB7jzeUtDFrYnAkct8/edit?usp=sharing)
+# OhHell
 
-Implementation of a playing strategy for a player at a game of ohhell.
+Implementation of a playing strategy for a player at a game of ohhell, submitted for FIT2102 Programming Paradigms. The framework for the game was provided by Professor Timothy Dwyer.
